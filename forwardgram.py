@@ -82,20 +82,50 @@ async def handler(event):
 @client.on(events.NewMessage(chats=channels))
 async def handler(event):
     msg = event.message.text
+
+    url = None
+    url_text = msg.find("ENROLL NOW!")
+    if url_text != -1:
+        text = msg[url_text:]
+        url = text[text.find("(")+1:text.find(")")-1]
+
+    image_link = None
+    if url:
+        proxies = {
+                "https": f"http://4.158.55.159:8080",  # HTTP схема для HTTPS проксі
+        }
+
+        while True:
+            try:
+                response = requests.get(url, proxies=proxies, timeout=60)
+            except requests.exceptions.ReadTimeout:
+                print("New try...")
+                continue
+            except requests.exceptions.ConnectionError:
+                print("New try...")
+                time.sleep(3)
+                continue
+            break
+
+        soup = bs(response.text, 'html.parser')
+
+        image_link = soup.find('meta', attrs={'property': 'og:image'})
+        if image_link: image_link = image_link['content']
+        
+    curse_text = msg.find("Course Details")
+    if curse_text != -1:
+        msg = msg[:curse_text-2]
+
+        msg = msg + "\n:point_right: [**GET THIS COURSE FOR FREE NOW**](" + url + ")"
+
+    msg = "**New Course Alert!**\n" + msg
     if msg.count("__") >= 2: msg = msg.replace("__", "*")
     async with aiohttp.ClientSession() as session:
         global wait, files
         webhook = Webhook.from_url(config['discord_webhook_url'], session=session)
         embed = disnake.Embed()
-        if config['output_channel_source'] or event.message.post_author or event.message.reply_to:
-            reply = await event.message.get_reply_message()
-            if reply: embed.description = f'>>> {reply.text}'+('\n' if reply.text else '')+('(Sticker)' if reply.sticker else '(Poll)' if reply.poll else '(Voice)' if reply.voice else '(Gif)' if reply.gif else '(Document)' if reply.document else '(Media)' if reply.media else '')
-            if config['output_channel_source']:
-                channel = await event.get_chat()
-                embed.set_footer(text=f'Forwarded from {channel.title}')
-            if event.message.post_author:
-                embed.set_author(name=f'Sent by {event.message.post_author}')
-        else: embed = None
+        embed.description = msg
+        if image_link: embed.set_image(url=image_link)
         if event.message.media and not event.web_preview:
             media = await event.message.download_media()
             file = disnake.File(fp=media)
@@ -105,12 +135,10 @@ async def handler(event):
             await asyncio.sleep(1)
             if wait == True:
                 wait = False
-                if msg:
-                    await webhook.send(msg,embed=embed,files=files)
-                else:
-                    await webhook.send(embed=embed,files=files)
+                await webhook.send(embed=embed,files=files)
                 files = []
-        else: await webhook.send(msg,embed=embed)
+        else:
+            await webhook.send(embed=embed)
 
 print("Init complete; Starting listening for messages...\n------")
 client.run_until_disconnected()
