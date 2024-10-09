@@ -92,7 +92,7 @@ async def handler(event):
     image_link = None
     if url:
         proxies = {
-                "https": f"http://4.158.55.159:8080",  # HTTP схема для HTTPS проксі
+                "https": config["proxy"][0],
         }
 
         while True:
