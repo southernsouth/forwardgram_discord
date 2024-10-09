@@ -18,3 +18,7 @@ channel_names:
 
 # If you're parsing multiple channels, you can turn on source channel display in webhook embed.
 output_channel_source: True
+
+# Proxy
+proxy:
+  - 'http://20.26.249.29:8080' # Proxy link. http://username:password@proxy_host:proxy_port
