@@ -6,6 +6,9 @@ import disnake
 from disnake import Webhook
 import aiohttp
 import asyncio
+import requests
+from bs4 import BeautifulSoup as bs
+
 
 # Crutch for attaching attaches in same message as they were sent, because Telegram doesn't do that for some reason 
 wait = False
@@ -125,20 +128,8 @@ async def handler(event):
         webhook = Webhook.from_url(config['discord_webhook_url'], session=session)
         embed = disnake.Embed()
         embed.description = msg
-        if image_link: embed.set_image(url=image_link)
-        if event.message.media and not event.web_preview:
-            media = await event.message.download_media()
-            file = disnake.File(fp=media)
-            os.remove(media)
-            wait = True
-            files.append(file)
-            await asyncio.sleep(1)
-            if wait == True:
-                wait = False
-                await webhook.send(embed=embed,files=files)
-                files = []
-        else:
-            await webhook.send(embed=embed)
+        if image_link: embed.set_image(url=image_link) 
+        await webhook.send(embed=embed)
 
 print("Init complete; Starting listening for messages...\n------")
 client.run_until_disconnected()
